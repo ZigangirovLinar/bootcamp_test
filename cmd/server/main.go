@@ -19,6 +19,15 @@ func main() {
 
 	mux := http.NewServeMux()
 
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("ok"))
+	})
+
 	// Панель из frontend/. Каталог берётся относительно рабочего, поэтому
 	// запускайте из корня модуля: go run ./cmd/server
 	mux.Handle("/", http.FileServer(http.Dir("frontend")))
