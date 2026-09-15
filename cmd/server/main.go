@@ -6,9 +6,12 @@
 package main
 
 import (
+	"encoding/json"
+	"io"
 	"log"
 	"net/http"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -26,6 +29,40 @@ func main() {
 		}
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("ok"))
+	})
+
+	mux.HandleFunc("/echo", func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			w.WriteHeader(http.StatusMethodNotAllowed)
+			return
+		}
+
+		type EchoRequest struct {
+			Message string `json:"message"`
+		}
+
+		contentType := r.Header.Get("Content-Type")
+		if strings.HasPrefix(contentType, "application/json") {
+
+			var req EchoRequest
+			err := json.NewDecoder(r.Body).Decode(&req)
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(req)
+			return
+		}
+
+		w.WriteHeader(http.StatusOK)
+		_, err := io.Copy(w, r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	})
 
 	// Панель из frontend/. Каталог берётся относительно рабочего, поэтому
